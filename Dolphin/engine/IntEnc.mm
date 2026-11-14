@@ -172,6 +172,7 @@ int playersdistancessize = 600;
 bool esp_Outline = true;
 int distance_Radar = 150;
 }
+#undef ProcessEvent_Offset
 uintptr_t ProcessEvent_Offset,AimBullet_Offset,AimBullet_Offset2,SetControlRotation_Offset;
 #define SLEEP_TIME 1000LL / 120LL
 #define TORAD(x) ((x) * (M_PI / 180.f))
@@ -708,6 +709,10 @@ void DrawRectangle(AHUD * HUD, FVector2D Pos, float Width, float Height, float T
     HUD->DrawLine(Pos.X, Pos.Y, Pos.X, Pos.Y + Height, Color, Thickness);
     HUD->DrawLine(Pos.X + Width, Pos.Y, Pos.X + Width, Pos.Y + Height, Color, Thickness);
     HUD->DrawLine(Pos.X, Pos.Y + Height, Pos.X + Width, Pos.Y + Height, Color, Thickness);
+}
+void DrawRectangle(AHUD * HUD, float X, float Y, float Width, float Height, FLinearColor Color)
+{
+    DrawRectangle(HUD, FVector2D(X, Y), Width, Height, 1.0f, Color);
 }
 void DrawFilledRectangle(AHUD *HUD, FVector2D Pos, float Width, float Height, FLinearColor Color) {
     HUD->DrawRect(Color, Pos.X, Pos.Y, Width, Height);
@@ -1543,6 +1548,22 @@ void RenderESP( AHUD *pHUD,int ScreenWidth, int ScreenHeight) {
     UCheatManager *CheatManager = 0;
     UPlayerAntiCheatManager *PlayerAntiCheatManager = 0;
     USTExtraFloatingVehicleMovementComponent *STExtraFloatingVehicleMovementComponent = 0;
+    class UVACTask_AccelerationControl { public: float MaxAccelerationSpeed = 0; float CheckInterval = 0; };
+    class UWeaponAntiCheatComp {};
+    class UVACTask_FlyingVehicle {};
+    class UVACTask_FlyingVehicleVelocity {};
+    class UVACTask_FlyingVehicleVelocityChange {};
+    class UVACTask_FlyingVehicleZ {};
+    class UVACTask_SuperSpeed {};
+    class UVACTask_SuperSpeedAllDir {};
+    class UVACTask_ClientAbsSpeed { public: float CheckInterval = 0; };
+    class FMoveCheatAntiStrategy {};
+    class USTBuildSystemComponent {};
+    class UDefaultAntiCheatComponent {};
+    class FClientTimeSpeedCheck {};
+    class FRealtimeMoveSpeedCheck {};
+    class FShovelAntiCheat {};
+
     USTExtraHelicopterVehicleMovementComponent *Helicopter = 0;
     ASTExtraShootWeapon *STExtraShootWeapon = 0;
     USceneComponent *SceneComponent = 0;
@@ -1844,7 +1865,7 @@ void RenderESP( AHUD *pHUD,int ScreenWidth, int ScreenHeight) {
                                                                 }
                                                                 if (AuFirStatus){
                                                                     if(Distance < autodiss()){
-                                                                        if(CurrentWeaponReplicated->CurBulletNumInClip > 1)
+                                                                        if(CurrentWeaponReplicated->GetCurBulletNumInClipForUI() > 1)
                                                                         {
                                                                             // localPlayerController->OnPressFire();
                                                                             // localPlayerController->OnReleaseFire();
@@ -1856,7 +1877,7 @@ void RenderESP( AHUD *pHUD,int ScreenWidth, int ScreenHeight) {
                                                                                 counter = 0;
                                                                             }
                                                                         }
-                                                                        if(CurrentWeaponReplicated->CurBulletNumInClip <= 1){
+                                                                        if(CurrentWeaponReplicated->GetCurBulletNumInClipForUI() <= 1){
                                                                             CurrentWeaponReplicated->StartReload();
                                                                         }
                                                                     }
