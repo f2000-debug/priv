@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef __forceinline
+#define __forceinline inline __attribute__((always_inline))
+#endif
+
 //4.7.0  --  RVAs below are 4.7.0; absolute iOS preferred-VM = 0x100000000 + RVA
 // ------------------------------------------------
 #define GName_Offset                      0x10F6CA2D0     // name entry fn

@@ -29,8 +29,10 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            GCC_WARN_INHIBIT_ALL_WARNINGS=YES \
             CONFIGURATION_BUILD_DIR="./build" \
             clean build
+
 
       - name: Upload Dylib Artifact
         uses: actions/upload-artifact@v4
