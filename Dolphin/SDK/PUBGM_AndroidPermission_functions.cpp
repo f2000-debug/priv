@@ -1,0 +1,68 @@
+// SDK集成工具By建锅 - @JGNB_K (4.4.0 -- 64Bit) SDK 工具 By 建锅 @JGNB_K
+// Telegram频道:- @JGNB_K
+// 此文件生成时间Mon May 11 21:56:13 2026
+ 
+#include "../SDK.hpp"
+
+namespace SDK
+{
+//---------------------By 建锅 @JGNB_K---------------------------
+//Functions
+//---------------------By 建锅 @JGNB_K---------------------------
+
+// Function AndroidPermission.AndroidPermissionFunctionLibrary.CheckPermission
+// (Final, Native, Static, Public, BlueprintCallable)
+// Parameters:
+// struct FString                 permission                     (Parm, ZeroConstructor)
+// bool                           ReturnValue                    (Parm, OutParm, ZeroConstructor, ReturnParm, IsPlainOldData)
+
+bool UAndroidPermissionFunctionLibrary::CheckPermission(const struct FString& permission)
+{
+	static UFunction *pFunc = 0;
+	if (!pFunc)
+		pFunc  = UObject::FindObject<UFunction>("Function AndroidPermission.AndroidPermissionFunctionLibrary.CheckPermission");
+
+	UAndroidPermissionFunctionLibrary_CheckPermission_Params params;
+	params.permission = permission;
+
+	auto flags = pFunc->FunctionFlags;
+	pFunc->FunctionFlags |= 0x400;
+
+	static auto defaultObj = StaticClass()->GetDefaultObject();
+	defaultObj->ProcessEvent(pFunc, &params);
+
+	pFunc->FunctionFlags = flags;
+
+	return params.ReturnValue;
+}
+
+
+// Function AndroidPermission.AndroidPermissionFunctionLibrary.AcquirePermissions
+// (Final, Native, Static, Public, HasOutParms, BlueprintCallable)
+// Parameters:
+// TArray<struct FString>         Permissions                    (ConstParm, Parm, OutParm, ZeroConstructor, ReferenceParm)
+// class UAndroidPermissionCallbackProxy* ReturnValue                    (Parm, OutParm, ZeroConstructor, ReturnParm, IsPlainOldData)
+
+class UAndroidPermissionCallbackProxy* UAndroidPermissionFunctionLibrary::AcquirePermissions(TArray<struct FString> Permissions)
+{
+	static UFunction *pFunc = 0;
+	if (!pFunc)
+		pFunc  = UObject::FindObject<UFunction>("Function AndroidPermission.AndroidPermissionFunctionLibrary.AcquirePermissions");
+
+	UAndroidPermissionFunctionLibrary_AcquirePermissions_Params params;
+	params.Permissions = Permissions;
+
+	auto flags = pFunc->FunctionFlags;
+	pFunc->FunctionFlags |= 0x400;
+
+	static auto defaultObj = StaticClass()->GetDefaultObject();
+	defaultObj->ProcessEvent(pFunc, &params);
+
+	pFunc->FunctionFlags = flags;
+
+	return params.ReturnValue;
+}
+
+
+}
+

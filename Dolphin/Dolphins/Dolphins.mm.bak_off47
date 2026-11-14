@@ -1,0 +1,1045 @@
+//
+//  Dolphins.m
+//  Dolphins
+//
+//  t.me/UltimateEngine
+//
+
+
+#import <Foundation/Foundation.h>
+
+#import "FloatView.h"
+
+#import "OverlayView.h"
+
+#include "dolphins.h"
+
+#import <mach-o/dyld.h>
+
+#include <stdio.h>
+
+#include <vector>
+
+#include <iostream>
+
+#include "module_tools.h"
+
+#include "pubg_offset.h"
+
+#include "memory_tools.h"
+#import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
+#include "module_tools.h"
+
+//#include "dobby.h"
+
+#include "log.h"
+
+
+
+//#import "Gzb.h"
+
+#define CJID "com.tencent.tmgp.pubgmhd"
+
+
+
+#define kWidth  [UIScreen mainScreen].bounds.size.width
+#define kHeight [UIScreen mainScreen].bounds.size.height
+using namespace std;
+
+
+ModuleControl moduleControl;
+
+MemoryTools memoryTools;
+
+
+
+
+bool (*LineOfSightTo)(void *controller, void *actor, ImVec3 bone_point, bool ischeck);
+
+
+void (*AddControllerYawInput)(void *actot, float val);
+
+
+void (*AddControllerRollInput)(void *actot, float val);
+
+
+void (*AddControllerPitchInput)(void *actot, float val);
+
+
+
+//qt
+//static long gWorld(){
+//    return reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x10285d9e8)((long)_dyld_get_image_vmaddr_slide(0) + 0x108f98458);
+//}
+
+//static long gName(){
+//    return  reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x10417cfcc)((long)_dyld_get_image_vmaddr_slide(0) + 0x108c049b0);
+//}
+
+//vng
+
+    static long gWorld(){
+        return reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x102953B7C)((long)_dyld_get_image_vmaddr_slide(0) + 0x109456EB8);
+    }
+    
+    static long gName(){
+        return  reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x10446AE84)((long)_dyld_get_image_vmaddr_slide(0) + 0x1090A6EE0);
+    }
+
+//bgmi
+//static long gWorld(){
+//    return reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x10203B83C)((long)_dyld_get_image_vmaddr_slide(0) + 0x1082DD258);
+//}
+
+//static long gName(){
+//    return  reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x10395C9E8)((long)_dyld_get_image_vmaddr_slide(0) + 0x107F4C5F0);
+//}
+
+//kr
+//static long gWorld(){
+//    return reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x1024887cc)((long)_dyld_get_image_vmaddr_slide(0) + 0x1081c6a18);
+//}
+
+//static long gName(){
+//    return  reinterpret_cast<long(__fastcall*)(long)>((long)_dyld_get_image_vmaddr_slide(0) + 0x103a57280)((long)_dyld_get_image_vmaddr_slide(0) + 0x107e3d240);
+//}
+
+struct {
+    
+    uintptr_t libAddr = 0;
+    
+    uintptr_t gwlordAddr;
+    
+    uintptr_t gnameAddr;
+    
+    uintptr_t playerController;
+    
+    string playerControllerClassName;
+    
+    uintptr_t cameraManager;
+    
+    string cameraManagerClassName;
+    
+    uintptr_t selfAddr;
+    
+    vector<StaticPlayerData> playerDataList;
+    vector<StaticMaterialData> materialDataList;
+    
+    vector<StaticMaterialData> smokeList;
+} staticData;
+
+
+static void didFinishLaunching(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
+ 
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    
+    mao* drawWindow = [[mao alloc] initWithFrame:&moduleControl];
+    
+    mi* menuWindow = [[mi alloc] initWithFrame:&moduleControl];
+    
+    OverlayView* overlayView = [[OverlayView alloc] initWithFrame:[UIScreen mainScreen].bounds:&moduleControl:drawWindow:menuWindow];
+    [[UIApplication sharedApplication].keyWindow addSubview:overlayView];
+    
+    FloatView* floatView = [[FloatView alloc] initWithFrame:CGRectMake(489, 58, 45, 45):&moduleControl];
+    [[UIApplication sharedApplication].keyWindow addSubview:floatView];
+
+         });
+
+     }
+
+
+                   
+__attribute__((constructor)) static void initialize() {
+     CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), NULL, &didFinishLaunching, (CFStringRef)UIApplicationDidFinishLaunchingNotification, NULL, CFNotificationSuspensionBehaviorDrop);
+
+    //loadHook();
+
+    pthread_t staticDataThread;
+    pthread_create(&staticDataThread, nullptr, readStaticData, nullptr);
+
+    pthread_t silenceAimbotThread;
+    pthread_create(&silenceAimbotThread, nullptr, silenceAimbot, nullptr);
+   
+}
+
+
+void *readStaticData(void *) {
+    while (true) {
+        sleep(4);
+        if(moduleControl.systemStatus != TransmissionNormal){
+            staticData.libAddr = (uintptr_t)_dyld_get_image_vmaddr_slide(0);
+            if(staticData.libAddr != 0){
+                moduleControl.systemStatus = TransmissionNormal;
+            }
+        }else if (moduleControl.systemStatus == TransmissionNormal) {
+            staticData.gwlordAddr = gWorld();
+            staticData.gnameAddr = gName();
+
+            staticData.playerController = memoryTools.readPtr(memoryTools.readPtr(memoryTools.readPtr(staticData.gwlordAddr + PubgOffset::PlayerControllerOffset[0]) + PubgOffset::PlayerControllerOffset[1]) + PubgOffset::PlayerControllerOffset[2]);
+
+            LineOfSightTo = (bool (*)(void *, void *, ImVec3, bool)) (memoryTools.readPtr(memoryTools.readPtr(staticData.playerController + 0x0) + PubgOffset::PlayerControllerParam::ControllerFunction::LineOfSightToOffset));//0x780
+
+            staticData.selfAddr = memoryTools.readPtr(staticData.playerController + PubgOffset::PlayerControllerParam::SelfOffset);
+
+            uintptr_t selfFunction = memoryTools.readPtr(staticData.selfAddr + 0);
+            AddControllerYawInput = (void (*)(void *, float)) (memoryTools.readPtr(selfFunction + PubgOffset::ObjectParam::PlayerFunction::AddControllerYawInputOffset));//0x780
+            AddControllerRollInput = (void (*)(void *, float)) (memoryTools.readPtr(selfFunction + PubgOffset::ObjectParam::PlayerFunction::AddControllerRollInputOffset));//0x780
+            AddControllerPitchInput = (void (*)(void *, float)) (memoryTools.readPtr(selfFunction + PubgOffset::ObjectParam::PlayerFunction::AddControllerPitchInputOffset));//0x780
+
+            staticData.cameraManager = memoryTools.readPtr(staticData.playerController + PubgOffset::PlayerControllerParam::CameraManagerOffset);
+            
+
+            vector<StaticPlayerData> tmpPlayerDataList;
+            vector<StaticMaterialData> tmpMaterialDataList;
+            vector<StaticMaterialData> tmpSmokeList;
+
+            uintptr_t uLevel = memoryTools.readPtr(staticData.gwlordAddr + PubgOffset::ULevelOffset);
+
+            uintptr_t obectArray = memoryTools.readPtr(uLevel + PubgOffset::ULevelParam::ObjectArrayOffset);
+
+            int objectCount = memoryTools.readInt(uLevel + PubgOffset::ULevelParam::ObjectCountOffset);
+
+            for (int index = 0; index < objectCount; ++index) {
+
+                uintptr_t objectAddr = memoryTools.readPtr(obectArray + index * 8);
+                if (objectAddr <= 0x100000000 || objectAddr >= 0x2000000000 || objectAddr % 8 != 0) {
+                    continue;
+                }
+                
+
+                uintptr_t coordAddr = memoryTools.readPtr(objectAddr + PubgOffset::ObjectParam::CoordOffset);
+                
+                string className = getClassName(memoryTools.readInt(objectAddr + PubgOffset::ObjectParam::ClassIdOffset));
+
+                if (strstr(className.c_str(), "PlayerPawn") || (strstr(className.c_str(), "PlayerCharacter") || (strstr(className.c_str(), "PlayerControllertSl") || (strstr(className.c_str(), "_PlayerPawn_TPlanAI_C")|| (strstr(className.c_str(), "CharacterModelTaget")|| (strstr(className.c_str(), "FakePlayer_AIPawn")!= 0 && moduleControl.mainSwitch.playerStatus)) )))) {
+
+                    int team = memoryTools.readInt(objectAddr + PubgOffset::ObjectParam::TeamOffset);
+                    int TeamID = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::TeamOffset);
+                    if (team == TeamID) continue;
+                    StaticPlayerData tmpPlayerData;
+
+                    tmpPlayerData.addr = objectAddr;
+
+                    tmpPlayerData.coordAddr = coordAddr;
+
+                    tmpPlayerData.team = team;
+
+                    tmpPlayerData.name = getPlayerName(memoryTools.readPtr(objectAddr + PubgOffset::ObjectParam::NameOffset));
+
+                    tmpPlayerData.robot = memoryTools.readInt(objectAddr + PubgOffset::ObjectParam::RobotOffset);
+                    
+                    tmpPlayerData.status = memoryTools.readInt(objectAddr + PubgOffset::ObjectParam::StatusOffset);
+                    
+                    tmpPlayerDataList.push_back(tmpPlayerData);
+                    
+                } else if (strstr(className.c_str(), "ProjSmoke_BP_C)") != 0) {
+                    StaticMaterialData tmpMaterialData;
+
+                    tmpMaterialData.type = Warning;
+
+                    tmpMaterialData.id = 4;
+
+                    tmpMaterialData.name = "[Warning] Smoke";
+
+                    tmpMaterialData.addr = objectAddr;
+
+                    tmpMaterialData.coordAddr = coordAddr;
+                    
+                    tmpSmokeList.push_back(tmpMaterialData);
+                } else if (moduleControl.mainSwitch.materialStatus) {
+                    MaterialStruct material = isMaterial(className.c_str());
+                    if (material.type > -1) {
+                        
+                        StaticMaterialData tmpMaterialData;
+                        
+                        tmpMaterialData.type = material.type;
+                        
+                        tmpMaterialData.id = material.id;
+                        
+                        tmpMaterialData.name = material.name;
+                        
+                        tmpMaterialData.addr = objectAddr;
+                        
+                        tmpMaterialData.coordAddr = coordAddr;
+                        
+                        if ((material.type == Rifle || material.type == Sniper || material.type == Missile) && memoryTools.readPtr(objectAddr + PubgOffset::ObjectParam::WeaponParam::MasterOffset) != 0) {
+                            continue;
+                        }
+                        tmpMaterialDataList.push_back(tmpMaterialData);
+                    }
+                }
+            }
+
+            staticData.playerDataList.swap(tmpPlayerDataList);
+            staticData.materialDataList.swap(tmpMaterialDataList);
+            staticData.smokeList.swap(tmpSmokeList);
+        }
+    }
+    return nullptr;
+}
+
+
+void readFrameData(ImVec2 screenSize,vector<PlayerData> &playerDataList, vector<MaterialData> &materialDataList) {
+    playerDataList.clear();
+    materialDataList.clear();
+    if (moduleControl.systemStatus == TransmissionNormal) {
+
+        staticData.cameraManagerClassName = getClassName(memoryTools.readInt(staticData.cameraManager + PubgOffset::ObjectParam::ClassIdOffset));
+
+        staticData.playerControllerClassName = getClassName(memoryTools.readInt(staticData.playerController + PubgOffset::ObjectParam::ClassIdOffset));
+
+        MinimalViewInfo pov;
+        memoryTools.readMemory(staticData.cameraManager + PubgOffset::PlayerControllerParam::CameraManagerParam::PovOffset, sizeof(pov), &pov);
+
+        ImVec3 selfCoord = pov.location;
+
+        float lateralAngleView = memoryTools.readFloat(staticData.playerController + PubgOffset::PlayerControllerParam::MouseOffset + 0x4) - 90;
+
+        if (moduleControl.mainSwitch.playerStatus) {
+            for (auto staticPlayerData: staticData.playerDataList) {
+
+
+                ImVec3 objectCoord;
+                memoryTools.readMemory(staticPlayerData.coordAddr + PubgOffset::ObjectParam::CoordParam::CoordOffset, sizeof(ImVec3), &objectCoord);
+
+                float objectDistance = get3dDistance(objectCoord, selfCoord, 100);
+                if (objectDistance < 0 || objectDistance > 450) {
+                    continue;
+                }
+
+                float objectHeight = memoryTools.readFloat(staticPlayerData.coordAddr + PubgOffset::ObjectParam::CoordParam::HeightOffset);
+                if (objectHeight < 20) {
+                    continue;
+                }
+                PlayerData playerData;
+
+                playerData.angle = lateralAngleView - rotateAngle(selfCoord, objectCoord) - 180;
+
+                playerData.radar = rotateCoord(lateralAngleView, ImVec2((selfCoord.x - objectCoord.x) / 200, (selfCoord.y - objectCoord.y) / 200));
+
+                playerData.distance = objectDistance;
+
+                playerData.robot = staticPlayerData.robot;
+                //掩体判断
+                
+                playerData.visibility = isCoordVisibility(objectCoord);
+                if (playerData.visibility && isOnSmoke(objectCoord)) {
+                    playerData.visibility = false;
+                }
+                
+                //判断一下高度
+                if (objectHeight < 50) {
+                    objectHeight -= 18;
+                } else if (objectHeight > 80) {
+                    objectHeight += 12;
+                }
+                //队伍ID
+                playerData.team = staticPlayerData.team;
+                //血量
+                playerData.hp = memoryTools.readFloat(staticPlayerData.addr + PubgOffset::ObjectParam::HpOffset);
+                //取敌人动作
+             //   NSLog(@"****： %id",statusName);
+                uintptr_t statusAddr = memoryTools.readPtr(staticPlayerData.addr + PubgOffset::ObjectParam::StatusOffset);
+                
+                if (statusAddr == 2097168) {
+                    playerData.statusName = "Drive";
+                    }
+                    if (statusAddr == 262208) {
+                    playerData.statusName = "Spray medicine";
+                    }
+                    if (statusAddr == 33554449) {
+                    playerData.statusName = "Skydive";
+                    }
+                    if (statusAddr == 262160) {
+                    playerData.statusName = "Standing";
+                    }
+                    if (statusAddr == 16) {
+                    playerData.statusName = "Standing";
+                    }
+                    if (statusAddr == 524288) {
+                    playerData.statusName = "Knockdown";
+                    }
+                    if (statusAddr == 147) {
+                    playerData.statusName = "Jump";
+                    }
+                    if (statusAddr == 529) {
+                    playerData.statusName = "Walk to reload";
+                    }
+                    if (statusAddr == 35) {
+                    playerData.statusName = "Squatting";
+                    }
+                    if (statusAddr == 8205) {
+                    playerData.statusName = "Fire";
+                    }
+                    if (statusAddr == 33) {
+                    playerData.statusName = "Squat";
+                    }
+                    if (statusAddr == 65568) {
+                    playerData.statusName = "Squat down and throw mines";
+                    }
+                    if (statusAddr == 65600) {
+                    playerData.statusName = "Get down and throw mines";
+                    }
+                    if (statusAddr == 1088) {
+                    playerData.statusName = "Get down and open the mirror";
+                    }
+                    if (statusAddr == 1056) {
+                    playerData.statusName = "Squat to open mirror";
+                    }
+                    if (statusAddr == 18) {
+                    playerData.statusName = "Standing";
+                    }
+                    if (statusAddr == 32784) {
+                    playerData.statusName = "Punch";
+                    }
+                    if (statusAddr == 23) {
+                    playerData.statusName = "Take a gun";
+                    }
+                    if (statusAddr == 1073741840) {
+                    playerData.statusName = "Fire";
+                    }
+                    if (statusAddr == 16777219) {
+                    playerData.statusName = "Swimming";
+                    }
+                    if (statusAddr == 524289) {
+                    playerData.statusName = "Knockdown";
+                    }
+                    if (statusAddr == 8205) {
+                    playerData.statusName = "Fire";
+                    }
+                    if (statusAddr == 1040) {
+                    playerData.statusName = "Survey";
+                                   }
+                    if (statusAddr == 272) {
+                    playerData.statusName = "Shoot";
+                                   }
+                    if (statusAddr == 4112) {
+                    playerData.statusName = "Tilt head";
+                                   }
+                    if (statusAddr == 19) {
+                    playerData.statusName = "running";
+                                   }
+                    if (statusAddr == 6552) {
+                    playerData.statusName = "Pull Grenade";
+                                   }
+                    if (statusAddr == 64) {
+                    playerData.statusName = "Lying on stomach";
+                                   }
+                    if (statusAddr == 32) {
+                    playerData.statusName = "Squatting";
+                                   }
+                    if (statusAddr == 144) {
+                    playerData.statusName = "Jump";
+                                   }
+                    if (statusAddr == 4128) {
+                    playerData.statusName = "Squatting and tilting head";
+                                   }
+                    if (statusAddr == 4384) {
+                    playerData.statusName = "Squat to fire";
+                                   }
+                    if (statusAddr == 528) {
+                    playerData.statusName = "Reloading";
+                                   }
+                    if (statusAddr == 320) {
+                    playerData.statusName = "Lay down and fire";
+                                   }
+                    if (statusAddr == 288) {
+                    playerData.statusName = "Squat to fire";
+                                   }
+                    if (statusAddr == 576) {
+                    playerData.statusName = "Reload while lying down";
+                                   }
+                    if (statusAddr == 544) {
+                    playerData.statusName = "Squatting to reload";
+                                   }
+                    if (statusAddr == 67108880) {
+                    playerData.statusName = "Over the wall";
+                                   }
+                    if (statusAddr == 273) {
+                    playerData.statusName = "Walking and firing";
+                                   }
+                    if (statusAddr == 4194320) {
+                    playerData.statusName = "Ride";
+                                   }
+                    if (statusAddr == 17) {
+                    playerData.statusName = "Walking";
+                               }
+                
+                
+                
+                //取对手手持武器
+                uintptr_t weaponAddr = memoryTools.readPtr(staticPlayerData.addr + PubgOffset::ObjectParam::WeaponOneOffset);
+                if (weaponAddr == 0) {
+                    playerData.weaponName = "Fist";
+                } else {
+                string className = getClassName(memoryTools.readInt(weaponAddr + PubgOffset::ObjectParam::ClassIdOffset));
+                MaterialStruct weaponName = isWeapon(className.c_str());
+                if (weaponName.id != 0) {
+                    playerData.weaponName = weaponName.name;
+                } else {
+                playerData.weaponName = "[Rifle] M762";
+                    }
+                }
+                //对象名字
+                playerData.name = staticPlayerData.name;
+                //屏幕XY
+                playerData.screen = worldToScreen(objectCoord, pov, screenSize);//X
+                //宽度和高度
+                ImVec2 width = worldToScreen(ImVec3(objectCoord.x,objectCoord.y,objectCoord.z + 100), pov,screenSize);
+                ImVec2 height = worldToScreen(ImVec3(objectCoord.x,objectCoord.y,objectCoord.z + objectHeight), pov,screenSize);
+                playerData.size.x = (playerData.screen.y - width.y) / 2;
+                playerData.size.y = playerData.screen.y - height.y;
+                
+                uintptr_t meshAddr = memoryTools.readPtr(staticPlayerData.addr + PubgOffset::ObjectParam::MeshOffset);
+                uintptr_t humanAddr = meshAddr + PubgOffset::ObjectParam::MeshParam::HumanOffset;
+                uintptr_t boneAddr = memoryTools.readPtr(meshAddr + PubgOffset::ObjectParam::MeshParam::BonesOffset) + 48;
+                //判断是否需要骨骼掩体判断
+                BonesData bonesData;
+                if (getBone2d(pov, screenSize,humanAddr, boneAddr, 5, bonesData.head))//头
+                    if (getBone2d(pov,screenSize, humanAddr, boneAddr, 4, bonesData.pit))//胸口
+                        if (getBone2d(pov,screenSize, humanAddr, boneAddr, 1, bonesData.pelvis))//屁股
+                            if (getBone2d(pov,screenSize, humanAddr, boneAddr, 11, bonesData.lcollar))//左肩
+                                if (getBone2d(pov, screenSize,humanAddr, boneAddr, 32, bonesData.rcollar))//右肩
+                                    if (getBone2d(pov,screenSize, humanAddr, boneAddr, 12, bonesData.lelbow))//左手肘
+                                        if (getBone2d(pov,screenSize, humanAddr, boneAddr, 33, bonesData.relbow))//右手肘
+                                            if (getBone2d(pov,screenSize, humanAddr, boneAddr, 63, bonesData.lwrist))//左手腕
+                                                if (getBone2d(pov,screenSize, humanAddr, boneAddr, 62, bonesData.rwrist))//右手腕
+                                                    if (getBone2d(pov, screenSize,humanAddr, boneAddr, 52, bonesData.lthigh))//左大腿
+                                                        if (getBone2d(pov,screenSize, humanAddr, boneAddr, 56, bonesData.rthigh))//右大腿
+                                                            if (getBone2d(pov,screenSize, humanAddr, boneAddr, 53, bonesData.lknee))//左膝盖
+                                                                if (getBone2d(pov,screenSize, humanAddr, boneAddr, 57, bonesData.rknee))//右膝盖
+                                                                    if (getBone2d(pov,screenSize, humanAddr, boneAddr, 54, bonesData.lankle))//左脚腕
+                                                                        if (getBone2d(pov,screenSize, humanAddr, boneAddr, 58, bonesData.rankle))//右脚腕
+                                                                            playerData.bonesData = bonesData;
+                playerDataList.push_back(playerData);
+            }
+        }
+        if (moduleControl.mainSwitch.materialStatus) {
+            for (auto staticMaterialData: staticData.materialDataList) {
+                string className = getClassName(memoryTools.readInt(staticMaterialData.coordAddr + PubgOffset::ObjectParam::ClassIdOffset));
+                if (isRecycled(className.c_str())) {
+                    continue;
+                }
+                //坐标
+                ImVec3 objectCoord;
+                memoryTools.readMemory(staticMaterialData.coordAddr + PubgOffset::ObjectParam::CoordParam::CoordOffset, sizeof(ImVec3), &objectCoord);
+                //计算自己到对象的距离
+                float objectDistance = get3dDistance(objectCoord, selfCoord, 100);
+                if (staticMaterialData.type > 1 && staticMaterialData.type < All && objectDistance > 100) {
+                    continue;
+                }
+                //判断数据是否是0
+                if (staticMaterialData.type < 0 && staticMaterialData.type > All) {
+                    continue;
+                }
+                //判断开关 数组下标是否超出
+                if (!moduleControl.materialSwitch[staticMaterialData.type]) {
+                    continue;
+                }
+                MaterialData materialData;
+                //物资类型
+                materialData.type = staticMaterialData.type;
+                //物资ID
+                materialData.id = staticMaterialData.id;
+                //物资名字
+                materialData.name = staticMaterialData.name;
+                //距离
+                materialData.distance = objectDistance;
+                //屏幕坐标
+                materialData.screen = worldToScreen(objectCoord, pov, screenSize);//X
+                
+                materialDataList.push_back(materialData);
+                
+                if (staticMaterialData.type == Airdrop) {
+                    //屏幕坐标
+                    ImVec2 goodsListScreen = worldToScreen(objectCoord, pov, screenSize);//X
+                    
+                    if (get2dDistance(screenSize, goodsListScreen) < 150) {
+                        int goodsListValidCount = 0;
+                        //盒子遍历
+                        uintptr_t goodsListArray = memoryTools.readPtr(staticMaterialData.addr + PubgOffset::ObjectParam::GoodsListOffset);
+                        //盒子物资数量
+                        int goodsListCount = memoryTools.readInt(staticMaterialData.addr + PubgOffset::ObjectParam::GoodsListOffset + sizeof(uintptr_t));
+                        //开始遍历
+                        for (int index = 0; index < goodsListCount; index++) {
+                            if (index > 100) {
+                                break;
+                            }
+                            //对象ID
+                            int goodsListId = memoryTools.readInt(goodsListArray + 0x4 + index * PubgOffset::ObjectParam::GoodsListParam::DataBase);
+                            
+                            MaterialStruct goods = isBoxMaterial(goodsListId);
+                            if (goods.type == -1) {
+                                continue;
+                            }
+                            
+                            memset(&materialData, 0, sizeof(materialData));
+                            
+                            goodsListValidCount++;
+
+                            materialData.type = goods.type;
+
+                            materialData.id = goods.id;
+
+                            materialData.name = goods.name;
+
+                            materialData.distance = -100;
+
+                            materialData.screen.x = goodsListScreen.x;
+                            materialData.screen.y = goodsListScreen.y - 32 * (goodsListValidCount);
+                            
+                            materialDataList.push_back(materialData);
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+}
+
+
+void *silenceAimbot(void *) {
+    ImVec2 screenSize = ImVec2([UIScreen mainScreen].bounds.size.width,[UIScreen mainScreen].bounds.size.height);
+    while (true) {
+        usleep(16666);
+        if (moduleControl.systemStatus == TransmissionNormal && moduleControl.mainSwitch.aimbotStatus/* && softWareData.loginStatus*/) {
+
+            uintptr_t weaponAddr = memoryTools.readPtr(staticData.selfAddr + PubgOffset::ObjectParam::WeaponOneOffset);
+
+            bool enabledAimbot = false;
+
+            switch (moduleControl.aimbotController.aimbotMode) {
+                case 0:
+
+                    enabledAimbot = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 257 || memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 1;
+                    break;
+                case 1:
+
+                    enabledAimbot = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenFireOffset) == 1;
+                    break;
+                case 2:
+
+                    enabledAimbot = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 257 || memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 1 || memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenFireOffset) == 1;
+                    break;
+                case 3:
+
+                    if (memoryTools.readInt(weaponAddr + PubgOffset::ObjectParam::WeaponParam::ShootModeOffset) >= 1024) {
+
+                        enabledAimbot = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenFireOffset) == 1;
+                    } else {
+
+                        enabledAimbot = memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 257 || memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenTheSightOffset) == 1;
+                    }
+                    break;
+            }
+
+            if (enabledAimbot) {
+
+                MinimalViewInfo pov;
+                memoryTools.readMemory(staticData.cameraManager + PubgOffset::PlayerControllerParam::CameraManagerParam::PovOffset, sizeof(pov), &pov);
+
+                ImVec3 selfCoord = pov.location;
+                
+                float aimbotRadius = moduleControl.aimbotController.aimbotRadius;
+                
+                StaticPlayerData aimbotPlayerData;
+
+                aimbotPlayerData.addr = 0;
+                
+                ImVec3 aimbotCoord = ImVec3(0,0,0);
+
+                for (auto staticPlayerData: staticData.playerDataList) {
+
+                    
+                    ImVec3 objectCoord;
+                    memoryTools.readMemory(staticPlayerData.coordAddr + PubgOffset::ObjectParam::CoordParam::CoordOffset, sizeof(ImVec3), &objectCoord);
+                    
+                    float objectDistance = get3dDistance(objectCoord, selfCoord, 100);
+                    if (objectDistance < 0 || objectDistance > 450 || objectDistance > moduleControl.aimbotController.distance) {
+                        continue;
+                    }
+
+                    float objectHeight = memoryTools.readFloat(staticPlayerData.coordAddr + PubgOffset::ObjectParam::CoordParam::HeightOffset);
+                    if (objectHeight < 20) {
+                        continue;
+                    }
+                    
+                    if (memoryTools.readFloat(staticPlayerData.addr + PubgOffset::ObjectParam::HpOffset) < 0.5 && moduleControl.aimbotController.fallNotAim) {
+                        continue;
+                    }
+                    
+                    ImVec2 playerScreen = worldToScreen(objectCoord, pov, screenSize);
+                    
+                    float screenDistance;
+                    
+                    if ((screenDistance = get2dDistance(screenSize,playerScreen)) < aimbotRadius) {
+
+                        uintptr_t meshAddr = memoryTools.readPtr(staticPlayerData.addr + PubgOffset::ObjectParam::MeshOffset);
+                        uintptr_t humanAddr = meshAddr + PubgOffset::ObjectParam::MeshParam::HumanOffset;
+                        uintptr_t boneAddr = memoryTools.readPtr(meshAddr + PubgOffset::ObjectParam::MeshParam::BonesOffset) + 48;
+
+                        switch (moduleControl.aimbotController.aimbotParts) {
+                            case 0: {
+
+                                int boneIds[] = {5, 3, 1, 11, 32, 12, 33, 63, 62, 52, 56, 53, 57, 54, 58};
+                                for (int boneId = 0; boneId < end(boneIds) - begin(boneIds); ++boneId) {
+                                
+aimbotCoord = getBone(humanAddr, boneAddr, boneIds[boneId]);
+
+                                    if (isCoordVisibility(aimbotCoord)) {
+
+                                        aimbotPlayerData = staticPlayerData;
+
+                                        aimbotRadius = screenDistance;
+
+                                        break;
+                                    } else {
+
+                                        aimbotCoord = {0, 0, 0};
+                                    }
+                                }
+                            }
+
+                                break;
+                            case 1: {
+                                int boneIds[] = {3, 5, 1, 11, 32, 12, 33, 63, 62, 52, 56, 53, 57, 54, 58};
+                                for (int boneId = 0; boneId < end(boneIds) - begin(boneIds); ++boneId) {
+
+                                    aimbotCoord = getBone(humanAddr, boneAddr, boneIds[boneId]);
+                                    if (isCoordVisibility(aimbotCoord)) {
+                                        aimbotPlayerData = staticPlayerData;
+                                        aimbotRadius = screenDistance;
+                                        break;
+                                    } else {
+                                        aimbotCoord = {0, 0, 0};
+                                    }
+                                }
+                            }
+                                break;
+                            case 2: {
+                                if (memoryTools.readInt(weaponAddr + PubgOffset::ObjectParam::WeaponParam::ShootModeOffset) >= 1024) {
+                                    int boneIds[] = {3, 5, 1, 11, 32, 12, 33, 63, 62, 52, 56, 53, 57, 54, 58};
+                                    for (int boneId = 0; boneId < end(boneIds) - begin(boneIds); ++boneId) {
+
+                                        aimbotCoord = getBone(humanAddr, boneAddr, boneIds[boneId]);
+                                        if (isCoordVisibility(aimbotCoord)) {
+                                            aimbotPlayerData = staticPlayerData;
+                                            aimbotRadius = screenDistance;
+                                            break;
+                                        } else {
+                                            aimbotCoord = {0, 0, 0};
+                                        }
+                                    }
+                                } else {
+                                    int boneIds[] = {5, 3, 1, 11, 32, 12, 33, 63, 62, 52, 56, 53, 57, 54, 58};
+                                    for (int boneId = 0; boneId < end(boneIds) - begin(boneIds); ++boneId) {
+                                        //取骨点
+                                        aimbotCoord = getBone(humanAddr, boneAddr, boneIds[boneId]);
+                                        if (isCoordVisibility(aimbotCoord)) {
+                                            aimbotPlayerData = staticPlayerData;
+                                            aimbotRadius = screenDistance;
+                                            break;
+                                        } else {
+                                            aimbotCoord = {0, 0, 0};
+                                        }
+                                    }
+                                }
+                            }
+                                break;
+                            case 3: {
+
+                                aimbotCoord = getBone(humanAddr, boneAddr, 5);
+                                if (isCoordVisibility(aimbotCoord)) {
+                                    aimbotPlayerData = staticPlayerData;
+                                    aimbotRadius = screenDistance;
+                                    break;
+                                } else {
+                                    aimbotCoord = {0, 0, 0};
+                                }
+                            }
+                                break;
+                            case 4: {
+
+                                aimbotCoord = getBone(humanAddr, boneAddr, 3);
+                                if (isCoordVisibility(aimbotCoord)) {
+                                    aimbotPlayerData = staticPlayerData;
+                                    aimbotRadius = screenDistance;
+                                    break;
+                                } else {
+                                    aimbotCoord = {0, 0, 0};
+                                }
+                            }
+                                break;
+                        }
+                    }
+
+                }
+
+                if (aimbotPlayerData.addr != 0 && aimbotCoord.x != 0 && aimbotCoord.y != 0 && aimbotCoord.z != 0) {
+
+                    if (moduleControl.aimbotController.smoke) {
+                        if (isOnSmoke(aimbotCoord)) {
+                            aimbotCoord = {0, 0, 0};
+                            continue;
+                        }
+                    }
+//                    float distance = get3dDistance(selfCoord, aimbotCoord, 100);
+
+                    uintptr_t weaponAttrAddr = memoryTools.readPtr(weaponAddr + PubgOffset::ObjectParam::WeaponParam::WeaponAttrOffset);
+
+                    float bulletSpeed = memoryTools.readFloat(weaponAttrAddr + PubgOffset::ObjectParam::WeaponParam::WeaponAttrParam::BulletSpeedOffset);
+
+                    float bulletFlyTime = get3dDistance(selfCoord, aimbotCoord, bulletSpeed) * 1.2;
+
+                    ImVec3 moveCoord;
+                    memoryTools.readMemory(aimbotPlayerData.addr + PubgOffset::ObjectParam::MoveCoordOffset, 12, &moveCoord);
+
+                    float bulletSpeed1 = memoryTools.readFloat(weaponAttrAddr + PubgOffset::ObjectParam::WeaponParam::WeaponAttrParam::BulletSpeedOffset);
+                    if(bulletSpeed1 != 1800000){
+                        aimbotCoord.x += moveCoord.x * bulletFlyTime;
+                        aimbotCoord.y += moveCoord.y * bulletFlyTime;
+                        aimbotCoord.z += moveCoord.z * bulletFlyTime;
+                    }
+                    
+
+                    ImVec2 aimbotMouse = rotateAngleView(selfCoord, aimbotCoord);
+
+                    float selfStatus = memoryTools.readFloat(memoryTools.readPtr(staticData.selfAddr + PubgOffset::ObjectParam::CoordOffset) + PubgOffset::ObjectParam::CoordParam::HeightOffset);
+
+                    string className = getClassName(memoryTools.readInt(weaponAddr + PubgOffset::ObjectParam::ClassIdOffset));
+
+                    if (selfStatus > 47) {
+
+                        if (strstr(className.c_str(), "BP_Sniper_AWM_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.06;
+                            aimbotMouse.y -= 0.06;
+                        } else if (strstr(className.c_str(), "BP_Sniper_AMR_Wrapper_C") != 0) {
+                            aimbotMouse.x -= 0.075;
+                            aimbotMouse.y -= 0.035;
+                        } else if (strstr(className.c_str(), "BP_Sniper_M24_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.04;
+                            aimbotMouse.y -= 0.03;
+                        } else if (strstr(className.c_str(), "BP_Sniper_Kar98k_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.05;
+                            aimbotMouse.y -= 0.02;
+                        } else if (strstr(className.c_str(), "BP_Sniper_Mosin_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.04;
+                            aimbotMouse.y -= 0.05;
+                        } else if (strstr(className.c_str(), "BP_Sniper_Mk14_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.05;
+                            aimbotMouse.y -= 0.05;
+                        } else if (strstr(className.c_str(), "BP_Sniper_QBU_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.055;
+                            aimbotMouse.y -= 0.085;
+                        } else if (strstr(className.c_str(), "BP_Sniper_SKS_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.06;
+                            aimbotMouse.y -= 0.085;
+                        } else if (strstr(className.c_str(), "BP_Sniper_SLR_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.055;
+                            aimbotMouse.y -= 0.03;
+                        } else if (strstr(className.c_str(), "BP_Sniper_Mini14_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.015;
+                            aimbotMouse.y -= 0.05;
+                            
+                        } else if (strstr(className.c_str(), "BP_Rifle_QBZ_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.045;
+                            aimbotMouse.y -= 0.09;
+                        } else if (strstr(className.c_str(), "BP_Rifle_G36_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.02;
+                            aimbotMouse.y -= 0.055;
+                        } else if (strstr(className.c_str(), "BP_Rifle_Groza_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.03;
+                            aimbotMouse.y -= 0.065;
+                        } else if (strstr(className.c_str(), "BP_Rifle_AUG_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.015;
+                            aimbotMouse.y -= 0.08;
+                        } else if (strstr(className.c_str(), "BP_Rifle_M16A4_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.04;
+                            aimbotMouse.y -= 0.07;
+                        } else if (strstr(className.c_str(), "BP_Rifle_AKM_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.04;
+                            aimbotMouse.y -= 0.07;
+                        } else if (strstr(className.c_str(), "BP_Rifle_SCAR_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.02;
+                            aimbotMouse.y -= 0.085;
+                        } else if (strstr(className.c_str(), "BP_Rifle_M416_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.02;
+                            aimbotMouse.y -= 0.08;
+                        } else if (strstr(className.c_str(), "BP_Rifle_M762_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.03;
+                            aimbotMouse.y -= 0.07;
+                        } else if (strstr(className.c_str(), "BP_Other_M249_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.025;
+                            aimbotMouse.y -= 0.06;
+                        } else if (strstr(className.c_str(), "BP_Other_MG3_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.03;
+                            aimbotMouse.y -= 0.07;
+                        } else if (strstr(className.c_str(), "BP_Other_DP28_Wrapper_C") != 0) {
+                            aimbotMouse.x += 0.045;
+                            aimbotMouse.y -= 0.095;
+                        }
+                    }
+                    
+
+                    if (memoryTools.readInt(staticData.selfAddr + PubgOffset::ObjectParam::OpenFireOffset) == 1) {
+
+                        float recoilTimes = 4.5 - get3dDistance(selfCoord, aimbotCoord, 10000);
+                        recoilTimes += get3dDistance(selfCoord, aimbotCoord, 10000) * 0.2;
+
+                        float recoil = memoryTools.readFloat(weaponAttrAddr + PubgOffset::ObjectParam::WeaponParam::WeaponAttrParam::RecoilOffset);//站立
+
+                        if (strstr(className.c_str(), "BP_Sniper_VSS_Wrapper_C") != 0) {
+                            recoil *= 0.4;
+                        } else if (strstr(className.c_str(), "BP_Rifle_G36_Wrapper_C") != 0) {
+                            recoil *= 0.6;
+                        } else if (strstr(className.c_str(), "BP_Rifle_VAL_Wrapper_C") != 0) {
+                            recoil *= 0.45;
+                        } else if (strstr(className.c_str(), "BP_Rifle_AUG_Wrapper_C") != 0) {
+                            recoil *= 0.7;
+                        } else if (strstr(className.c_str(), "BP_Rifle_AKM_Wrapper_C") != 0) {
+                            recoil *= 1.15;
+                        } else if (strstr(className.c_str(), "BP_Other_MG3_Wrapper_C") != 0) {
+                            recoil *= 0.2;
+                        } else if (strstr(className.c_str(), "BP_Other_DP28_Wrapper_C") != 0) {
+                            recoil *= 0.3;
+                        }
+
+                        if (selfStatus < 50.0f) {
+
+                            if (strstr(className.c_str(), "BP_Rifle_M762_Wrapper_C") != 0) {
+                                recoil *= 0.55;
+                                aimbotMouse.x += 0.2;
+                            } else if (strstr(className.c_str(), "BP_Other_M249_Wrapper_C") != 0) {
+                                recoil *= 0.6;
+                                aimbotMouse.x += 0.08;
+                            } else {
+                                recoil *= 0.35;
+                            }
+                        }
+
+                        aimbotMouse.y -= recoilTimes * recoil;
+                    }
+                    
+
+                    if (!isfinite(aimbotMouse.x) || !isfinite(aimbotMouse.y)) {
+                        continue;
+                    }
+
+                    ImVec2 aimbotMouseMove;
+
+                    aimbotMouseMove.x = change(getAngleDifference(aimbotMouse.x, memoryTools.readFloat(staticData.playerController + PubgOffset::PlayerControllerParam::MouseOffset + 0x4)) * moduleControl.aimbotController.aimbotIntensity);
+                    aimbotMouseMove.y = change(getAngleDifference(aimbotMouse.y, memoryTools.readFloat(staticData.playerController + PubgOffset::PlayerControllerParam::MouseOffset)) * moduleControl.aimbotController.aimbotIntensity);
+
+                    if (!isfinite(aimbotMouseMove.x) || !isfinite(aimbotMouseMove.y)) {
+                        continue;
+                    }
+
+                    if (AddControllerYawInput != NULL) {
+                        AddControllerYawInput(reinterpret_cast<void *>(staticData.selfAddr), aimbotMouseMove.x);
+                    }
+                    if (AddControllerRollInput != NULL) {
+                        AddControllerRollInput(reinterpret_cast<void *>(staticData.selfAddr), aimbotMouseMove.y);
+                    }
+                    if (AddControllerPitchInput != NULL) {
+                        AddControllerPitchInput(reinterpret_cast<void *>(staticData.selfAddr), 0);
+                    }
+                }
+            }
+        }
+    }
+}
+
+//isVisiblePoint
+bool isCoordVisibility(ImVec3 coord) {
+    if (LineOfSightTo == nullptr || !isfinite(coord.x) || !isfinite(coord.y) || !isfinite(coord.z)) {
+        return false;
+    }
+    if (strstr(staticData.cameraManagerClassName.c_str(), "PlayerCameraManager") != 0 && strstr(staticData.playerControllerClassName.c_str(), "PlayerController") != 0) {
+        return LineOfSightTo(reinterpret_cast<void *>(staticData.playerController), reinterpret_cast<void *>(staticData.cameraManager), coord, false);
+    }
+    return false;
+}
+
+bool isOnSmoke(ImVec3 coord) {
+    for (StaticMaterialData smoke: staticData.smokeList) {
+
+        ImVec3 smokeCoord;
+        memoryTools.readMemory(smoke.coordAddr + PubgOffset::ObjectParam::CoordParam::CoordOffset, 30, &smokeCoord);
+        if (get3dDistance(smokeCoord, coord, 100) < 4) {
+            return true;
+        }
+    }
+    return false;
+}
+
+char *getPlayerName(uintptr_t addr) {
+    char *buf = (char *) malloc(448);
+    unsigned short buf16[16] = {0};
+    memoryTools.readMemory(addr, 28, buf16);
+    unsigned short *tempbuf16 = buf16;
+    char *tempbuf8 = buf;
+    char *buf8 = tempbuf8 + 32;
+    while (tempbuf16 < tempbuf16 + 28) {
+        if (*tempbuf16 <= 0x007F && tempbuf8 + 1 < buf8) {
+            *tempbuf8++ = (char) *tempbuf16;
+        } else if (*tempbuf16 >= 0x0080 && *tempbuf16 <= 0x07FF && tempbuf8 + 2 < buf8) {
+            *tempbuf8++ = (*tempbuf16 >> 6) | 0xC0;
+            *tempbuf8++ = (*tempbuf16 & 0x3F) | 0x80;
+        } else if (*tempbuf16 >= 0x0800 && *tempbuf16 <= 0xFFFF && tempbuf8 + 3 < buf8) {
+            *tempbuf8++ = (*tempbuf16 >> 12) | 0xE0;
+            *tempbuf8++ = ((*tempbuf16 >> 6) & 0x3F) | 0x80;
+            *tempbuf8++ = (*tempbuf16 & 0x3F) | 0x80;
+        } else {
+            break;
+        }
+        tempbuf16++;
+    }
+    return buf;
+}
+
+char *getClassName(int classId) {
+    char *buf = (char *) malloc(64);
+    if (classId > 0 && classId < 2000000) {
+        int page = classId / 16384;
+        int index = classId % 16384;
+        uintptr_t pageAddr = memoryTools.readPtr(staticData.gnameAddr + page * sizeof(uintptr_t));
+        uintptr_t nameAddr = memoryTools.readPtr(pageAddr + index * sizeof(uintptr_t)) + PubgOffset::ObjectParam::ClassNameOffset;
+        memoryTools.readMemory(nameAddr, 64, buf);
+    }
+    return buf;
+}
+
+
+ImVec3 getBone(uintptr_t human, uintptr_t bones, int part) {
+    Ue4Transform actorftf;
+    memoryTools.readMemory(human, sizeof(ImVec4), &actorftf.rotation);
+    memoryTools.readMemory(human + 0x10, sizeof(ImVec3), &actorftf.translation);
+    memoryTools.readMemory(human + 0x20, sizeof(ImVec3), &actorftf.scale3d);
+    
+    Ue4Matrix actormatrix = transformToMatrix(actorftf);
+    
+    Ue4Transform boneftf;
+    memoryTools.readMemory(bones + part * 48, sizeof(ImVec4), &boneftf.rotation);
+    memoryTools.readMemory(bones + part * 48 + 0x10, sizeof(ImVec3), &boneftf.translation);
+    memoryTools.readMemory(bones + part * 48 + 0x20, sizeof(ImVec3), &boneftf.scale3d);
+    
+    Ue4Matrix bonematrix = transformToMatrix(boneftf);
+    
+    return matrixToVector(matrixMulti(bonematrix, actormatrix));
+}
+
+
+bool getBone2d(MinimalViewInfo pov,ImVec2 screen, uintptr_t human, uintptr_t bones, int part,ImVec2 &buf) {
+//t.me/UltimateEngine
+    ImVec3 newmatrix = getBone(human, bones, part);
+
+    buf = worldToScreen(newmatrix, pov, screen);
+
+    return buf.x != 0 && buf.y != 0;
+}
+
+
+
+
