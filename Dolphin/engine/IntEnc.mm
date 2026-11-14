@@ -1540,54 +1540,13 @@ void RenderESP( AHUD *pHUD,int ScreenWidth, int ScreenHeight) {
     screenHeight = ScreenHeight;
     ASTExtraBaseCharacter *STExtraBaseCharacter = 0;
     ASTExtraCharacter *Charac = 0;
-    FVerifySwitch *VerifySwitch = 0;
-    FDistanceContinueHitCheck *DistanceContinueHitCheck = 0;
-    FAntiCheatDetailData *AntiCheatDetailData = 0;
-    UWeaponAntiCheatComp *WeaponAntiCheatComp = 0;
     AGameNetworkManager *GameNetworkManager = 0;
     UCheatManager *CheatManager = 0;
     UPlayerAntiCheatManager *PlayerAntiCheatManager = 0;
     USTExtraFloatingVehicleMovementComponent *STExtraFloatingVehicleMovementComponent = 0;
-    class UVACTask_AccelerationControl { public: float MaxAccelerationSpeed = 0; float CheckInterval = 0; };
-    class UWeaponAntiCheatComp {};
-    class UVACTask_FlyingVehicle {};
-    class UVACTask_FlyingVehicleVelocity {};
-    class UVACTask_FlyingVehicleVelocityChange {};
-    class UVACTask_FlyingVehicleZ {};
-    class UVACTask_SuperSpeed {};
-    class UVACTask_SuperSpeedAllDir {};
-    class UVACTask_ClientAbsSpeed { public: float CheckInterval = 0; };
-    class FMoveCheatAntiStrategy {};
-    class USTBuildSystemComponent {};
-    class UDefaultAntiCheatComponent {};
-    class FClientTimeSpeedCheck {};
-    class FRealtimeMoveSpeedCheck {};
-    class FShovelAntiCheat {};
-
     USTExtraHelicopterVehicleMovementComponent *Helicopter = 0;
     ASTExtraShootWeapon *STExtraShootWeapon = 0;
     USceneComponent *SceneComponent = 0;
-    UAntiCheatUtils *AntiCheatUtils = 0;
-    UGMCheatManager *GMCheatManager = 0;
-    UVACTask_AccelerationControl *VACTask_AccelerationControl = 0;
-    UWeaponAntiCheatComp *WeaponCheat = 0;
-    UVACTask_FlyingVehicle *VACTask_FlyingVehicle = 0;
-    UVACTask_FlyingVehicleVelocity *VACTask_FlyingVehicleVelocity = 0;
-    UVACTask_FlyingVehicleVelocityChange *VACTask_FlyingVehicleVelocityChange = 0;
-    UVACTask_FlyingVehicleZ *VACTask_FlyingVehicleZ = 0;
-    UVACTask_SuperSpeed *VACTask_SuperSpeed = 0;
-    UVACTask_SuperSpeedAllDir *VACTask_SuperSpeedAllDir = 0;
-    UActorComponent *ActorComponent = 0;
-    UVACTask_ClientAbsSpeed *VACTask_ClientAbsSpeed = 0;
-    FMoveCheatAntiStrategy *MoveCheatAntiStrategy = 0;
-    UAssetUserData *AssetUserData = 0;
-    USTBuildSystemComponent *STBuildSystemComponent = 0;
-    UDefaultAntiCheatComponent *DefaultAntiCheatComponent = 0;
-    //   FMoveCheatAntiStrategy2 *MoveCheatAntiStrategy3 = 0;
-    //FCharacterZMoveDistanceCheck *CharacterZMoveDistanceCheck = 0;
-    FClientTimeSpeedCheck *ClientTimeSpeedCheck = 0;
-    FRealtimeMoveSpeedCheck *RealtimeMoveSpeedCheck = 0;
-    FShovelAntiCheat *ShovelAntiCheat = 0;
     FVector LocalPos{0, 0, 0}, ViewPos{0, 0, 0};
     
     
@@ -2450,117 +2409,10 @@ void RenderESP( AHUD *pHUD,int ScreenWidth, int ScreenHeight) {
                     GameNetworkManager->StandbyTxCheatTime = (float) 0;
                     GameNetworkManager->bMovementTimeDiscrepancyDetection = (bool) 0;
                 }
-                if(VerifySwitch) {
-                    VerifySwitch = 0;
-                    VerifySwitch->VerifyFailedCnt = 0;
-                }
-                if(AntiCheatDetailData){
-                    AntiCheatDetailData = 0;
-                }
-                if(DistanceContinueHitCheck) {
-                    DistanceContinueHitCheck = 0;
-                    DistanceContinueHitCheck->MaxCheatTimes = (float) 99999999;
-                    DistanceContinueHitCheck->CheckDisSquared = (float) 0;
-                }
-                if(WeaponAntiCheatComp) {
-                    WeaponAntiCheatComp = 0;
-                    WeaponAntiCheatComp->ShootRateCheckInterval = (float) 0;
-                    WeaponAntiCheatComp->ShootRateCheckTag = (bool) 0;
-                    WeaponAntiCheatComp->ShootRateCheckMulCoff = (float) 0;
-                    WeaponAntiCheatComp->ShootHitTargetIntervalMulCoff = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeInfoCheckClearInterval = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeInfoCheckLifeTime = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeGunPosBigCircle = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeGunPosMaxRightDif = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeGunPosMaxRightDifInVehicle = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeGunPosMaxRightDif = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeGunPosMaxRightDifInVehicle = (float) 0;
-                    WeaponAntiCheatComp->MaxClientCapsuleHalfHeight = (int) 9999999;
-                    WeaponAntiCheatComp->ShootTimeMuzzleDistThres = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeMuzzleZThres = (float) 0;
-                    WeaponAntiCheatComp->bVerifyTimeLineSync = (bool) 0;
-                    WeaponAntiCheatComp->TimeLineCheckDnBorder = (float) 0;
-                    WeaponAntiCheatComp->TimeLineCheckUpBorder = (float) 0;
-                    WeaponAntiCheatComp->ShootTimeConnectionDeltaThres = (float) 0;
-                    WeaponAntiCheatComp->bVerifyStartFireTime = (bool) 0;
-                    WeaponAntiCheatComp->MaxShootPassTimeDeltaBetweenSysAndLevel = (float) 0;
-                    WeaponAntiCheatComp->TolerateFlyTime = (float) 0;
-                    WeaponAntiCheatComp->TolerateFlyDis = (float) 0;
-                }
-                
-                
-                
-                if(ShovelAntiCheat){
-                    ShovelAntiCheat = 0;
-                    ShovelAntiCheat->DataSendInterval = (float) 0;
-                    ShovelAntiCheat->DataSampleInterval = (float) 0;
-                    ShovelAntiCheat->SampleMoveVelocityTorelate = (float) 0;
-                    ShovelAntiCheat->CheatLockTime = (float) 0;
-                    ShovelAntiCheat->MaxServerClientDeltaCount = (int) 0;
-                }
-                if(RealtimeMoveSpeedCheck) {
-                    RealtimeMoveSpeedCheck = 0;
-                }
-                if(ClientTimeSpeedCheck) {
-                    ClientTimeSpeedCheck = 0;
-                    ClientTimeSpeedCheck->CheckTimeDeltaInterval = (float) 0;
-                    ClientTimeSpeedCheck->MaxClientTimeDeltaAheadServer = (float) 99999;
-                    ClientTimeSpeedCheck->MaxPublishForbidMoveTime = (float) 99999;
-                    ClientTimeSpeedCheck->MaxServerTimeDelta = (float) 0;
-                    ClientTimeSpeedCheck->MaxClientAheadServerTotalTime = (float) 0;
-                    ClientTimeSpeedCheck->MaxProcessCounterOneFrame = (int) 0;
-                }
-                /* if(CharacterZMoveDistanceCheck) {
-                 CharacterZMoveDistanceCheck = 0;
-                 CharacterZMoveDistanceCheck->MaxAllowCheatMoveTimes = (int) 99999999;
-                 CharacterZMoveDistanceCheck->MaxAllowMoveZHeight = (float) 99999999;
-                 }*/
                 if( localPlayer->STCharacterMovement){
                     localPlayer-> STCharacterMovement->CheatCheckSumFailed = (bool) 0;
                     localPlayer->STCharacterMovement->bCheatClientLocation = (bool) 0;
                     localPlayer-> STCharacterMovement->bUseTimeSpeedAntiCheatCheck = (bool) 0;
-                }
-                if(AntiCheatUtils) {
-                    AntiCheatUtils = 0;
-                }
-                if(DefaultAntiCheatComponent) {
-                    DefaultAntiCheatComponent = 0;
-                }
-                if(GMCheatManager) {
-                    GMCheatManager = 0;
-                }
-                if(STBuildSystemComponent) {
-                }
-                if(VACTask_AccelerationControl) {
-                    VACTask_AccelerationControl->MaxAccelerationSpeed = (float) 999999;
-                    VACTask_AccelerationControl->CheckInterval = (float) 0;
-                }
-                if(VACTask_ClientAbsSpeed) {
-                    VACTask_ClientAbsSpeed->CheckInterval = (float) 0;
-                }
-                if(VACTask_FlyingVehicle) {
-                    VACTask_FlyingVehicle = 0;
-                }
-                if(VACTask_FlyingVehicleVelocityChange) {
-                    VACTask_FlyingVehicleVelocityChange = 0;
-                }
-                if(VACTask_FlyingVehicleVelocity) {
-                    VACTask_FlyingVehicleVelocity = 0;
-                }
-                if(VACTask_SuperSpeed) {
-                    VACTask_SuperSpeed = 0;
-                }
-                if(VACTask_SuperSpeedAllDir) {
-                    VACTask_SuperSpeedAllDir = 0;
-                }
-                if(VACTask_FlyingVehicle) {
-                    VACTask_FlyingVehicle = 0;
-                }
-                if(ActorComponent) {
-                    ActorComponent = 0;
-                }
-                if(AssetUserData) {
-                    AssetUserData = 0;
                 }
             }
         }
